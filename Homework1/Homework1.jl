@@ -41,6 +41,7 @@ d1g_analytic(x) = -2x*exp(-x^2) # Analytic expression for dg/dx
 d1f_analytic(x) = cos(x) # Analytic expression for df/dx
 # End function declarations
 
+# Start calculations
 # Generate an array, calculate the values of each function over the step range declared above, and store them in the array
 g1 = @. g(x)
 d1g = @. d1g_analytic(x)
@@ -55,6 +56,7 @@ d1f_backward = @. back_diff(f, x)
 d1f_central = @. central_diff(f, x)
 d2f_central = @. central_diff2(f, x)
 
+# Relative error for each grid point between each method and the analytic derivative
 d1g_forward_error = @. relative_error(d1g, d1g_forward)
 d1g_backward_error = @. relative_error(d1g, d1g_backward)
 d1g_central_error = @. relative_error(d1g, d1g_central)
@@ -62,6 +64,7 @@ d1g_central_error = @. relative_error(d1g, d1g_central)
 d1f_forward_error = @. relative_error(d1f, d1f_forward)
 d1f_backward_error = @. relative_error(d1f, d1g_backward)
 d1f_central_error = @. relative_error(d1f, d1g_central)
+# End Calculations 
 
 # Collect all of the results into one set of arrays for each function
 g_values = hcat(g1, d1g, d1g_forward, d1g_backward, d1g_central)
@@ -70,6 +73,7 @@ f_values = hcat(f1, d1f, d1f_forward, d1f_backward, d1f_central, d2f_central)
 g_errors = hcat(d1g_forward_error, d1g_backward_error, d1g_central_error)
 f_errors = hcat(d1f_forward_error, d1f_backward_error, d1f_central_error)
 
+# Line types, central is set to dash so it and the analytic solution can be seen better
 lines = [:solid :solid :solid :solid :dash :solid]
 g_labels = ["g(x)" "g'(x) analytic" "g'(x) forward" "g'(x) backward" "g'(x) central"]
 f_labels = ["f(x)" "f'(x) analytic" "f'(x) forward" "f'(x) backward" "f'(x) central" "f''(x) central"]
@@ -77,12 +81,15 @@ f_labels = ["f(x)" "f'(x) analytic" "f'(x) forward" "f'(x) backward" "f'(x) cent
 g_error_labels = ["g'(x) forward error" "g'(x) backward error" "g'(x) central error"]
 f_error_labels = ["f'(x) forward error" "f'(x) backward error" "f'(x) central error"]
 
+# Plotting the functions
 g_plt = plot(x, g_values, label=g_labels,title="g(x) = exp(-x^2)", xlabel="x", ylabel="y", line=lines)
 f_plt = plot(x, f_values, label=f_labels, title = "f(x) = sin(x)", xlabel="x", ylabel="y", )
 
+# Plotting the error values
 g_error = plot(x, g_errors, label=g_error_labels, title = "Relative Error g'(x)")
 f_error = plot(x, f_errors, label=f_error_labels, title = "Relative Error f'(x)")
 
+# Show the plots in the Atom Plot plane
 display(g_plt)
 display(f_plt)
 display(g_error)
