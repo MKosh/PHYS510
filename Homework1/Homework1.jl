@@ -2,7 +2,7 @@ using Plots
 
 # Initializing
 a = 5.0
-N = 10000
+N = 100
 h = (a+a)/(N)
 x = -a:h:a # Generate a step range from -a to a in steps of length h
 # Initializing
@@ -64,7 +64,7 @@ d1g_central_error = @. relative_error(d1g, d1g_central)
 d1f_forward_error = @. relative_error(d1f, d1f_forward)
 d1f_backward_error = @. relative_error(d1f, d1g_backward)
 d1f_central_error = @. relative_error(d1f, d1g_central)
-# End Calculations 
+# End Calculations
 
 # Collect all of the results into one set of arrays for each function
 g_values = hcat(g1, d1g, d1g_forward, d1g_backward, d1g_central)
