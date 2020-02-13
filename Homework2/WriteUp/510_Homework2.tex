@@ -60,5 +60,19 @@
 \section*{1}
 
 	\subsection*{a)}
+	\begin{gather}
+		H = \frac{p_1^2 + p_2^2}{2} - \frac{1}{\sqrt{q_1^2 + q_2^2}}
+		\intertext{Hamiltons equations of motion are given by,} 
+		\dot{q}_k = \pderiv{H}{p_k} \ \text{ and } \dot{p}_k = -\pderiv{H}{q_k} \\
+		\Rightarrow \dot{q}_1 = \pderiv{}{p_1}\left( \frac{p_1^2 + p_2^2}{2} - \frac{1}{\sqrt{q_1^2 + q_2^2}} \right) = p_1 \\
+		\Rightarrow \dot{q}_2 = p_2 \\
+		\dot{p}_1 = - \pderiv{}{p_1} \left( \frac{p_1^2 + p_2^2}{2} - \frac{1}{\sqrt{q_1^2 + q_2^2}} \right) = \frac{1}{2} (q_1^2 + q_2^2)^{-3/2} (2q_1) = \frac{q_1}{\sqrt{q_1^2 + q_2^2}} \\
+		\Rightarrow \dot{p}_2 = \frac{q_2}{\sqrt{q_1^2 + q_2^2}}
+	\end{gather}
 
+	\subsection*{d)}
+		\subsubsection*{Symplectic Euler method}
+			For this method when the initial eccentricity is set to a value of around 0.6 the shape of the graph stays consistent even for large numbers of total time steps. When the eccentricity is set closer to 1, at 0.9 for example, the shape of the ellipse stays the same, but there is a precession of the ellipse. When the eccentricity is close to one, the energy of the system has larger errors, but still consistently corrects itself.
+	\subsubsection*{Euler method}
+			For this method the plot was not very stable, even with fairly low number of time steps and an eccentricity of 0.6. With a higher eccentricity of 0.9 the plot shows essentially a straight line, as the energy almost immediately goes to infinity. 
 \end{document}
