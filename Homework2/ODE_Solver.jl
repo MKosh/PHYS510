@@ -53,5 +53,5 @@ end
 Styles = [:solid :solid :dash :dash]
 Labels = ["Euler" "RK4" "Taylor" "Adams-Bashford"]
 plot(Y_values, xlabel="Time",ylabel="Y",label=Labels,linestyle=Styles,legend=:topleft,title=Title,size=(1280,720))
-savefig("ODEy0")
+#savefig("ODEy0")
 end

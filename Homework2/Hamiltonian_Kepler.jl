@@ -5,7 +5,7 @@ function H(q1, q2, p1, p2)
     (p1^2 + p2^2)/2 - 1/(sqrt(q1^2 + q2^2))
 end
 
-e = 0.9
+e = 0.6
 Title = "Explicit Euler, e = "*string(e)
 p1 = 0.0
 q1 = 1-e
@@ -15,7 +15,7 @@ q2 = 0.0
 
 t = 0.0
 dt = 0.01
-N = 10000
+N = 1000
 
 Time = [t]
 p1_values = [p1]
@@ -48,7 +48,7 @@ q_plt = plot(q1_values, q2_values,title=Title, xlabel="q1", ylabel="q2", aspect_
 p_plt = plot(p1_values, p2_values,title=Title, xlabel="p1", ylabel="p2", aspect_ratio=1,legend=false,size=(1280,720))
 H_plt = plot(Time, H_values,title = "Energy of the system, e = 0.9", xlabel="Time", ylabel="Energy",legend=false,ylims=(-1,0),size=(1280,720))
 
-savefig(q_plt, "HEqe0_9")
-savefig(p_plt, "HEpe0_9")
-savefig(H_plt, "HEHe0_9")
+#savefig(q_plt, "HEqe0_9")
+#savefig(p_plt, "HEpe0_9")
+#savefig(H_plt, "HEHe0_9")
 end
