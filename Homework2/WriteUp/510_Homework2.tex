@@ -1,0 +1,78 @@
+\documentclass{article}
+
+%Packages
+\usepackage[utf8]{inputenc}
+\usepackage[margin=1in, letterpaper]{geometry}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\usepackage{wrapfig}
+\usepackage{scrextend}
+\usepackage{lipsum}
+\usepackage{fancyhdr}
+\usepackage[usenames,dvipsnames]{xcolor}
+\usepackage{tikz}
+\usetikzlibrary{calc,trees,positioning,arrows,chains,shapes.geometric,%
+	decorations.pathreplacing,decorations.pathmorphing,shapes,%
+	matrix,shapes.symbols,plotmarks,decorations.markings,shadows}
+
+%Packages
+
+%Header and Footer
+\pagestyle{fancy}
+\fancyhead{}
+\fancyhead[R]{HW 2}
+\fancyhead[L]{Mark Mekosh}
+\fancyhead[C]{Computational Physics}
+\fancyfoot[C]{\thepage}
+%Header and Footer
+
+%\graphicspath{{./images/}}
+\definecolor{lec1}{RGB}{120,170,230}
+\definecolor{lec2}{RGB}{220,220,220}
+
+%Commands
+\newcommand{\hrt}{\begin{center} \line(1,0){469} \line(0,-1){15} \end{center}}
+\newcommand{\hrb}{\begin{center} \line(1,0){469} \line(0,1){15} \end{center}}
+\newcommand{\cbox}[2]{\begin{center} \fbox{\begin{minipage}{#1em} \begin{center}#2\end{center} \end{minipage}} \end{center}}
+\newcommand{\titledbox}[3]{}
+\newcommand{\dv}[1]{\dot{\vec{#1}}}
+\newcommand{\ddv}[1]{\ddot{\vec{#1}}}
+\newcommand{\cross}[2]{#1 \times #2}
+\newcommand{\Lagr}{\mathcal{L}}
+\newcommand{\code}[1]{\begin{addmargin}[2em]{2em} \textcolor{blue} {\fontfamily{pcr}\selectfont #1} \end{addmargin}}
+\newcommand{\codeout}[1]{\begin{addmargin}[2em]{2em} \textbf{Output:} \\ \color{Green} {\fontfamily{qcr}\selectfont #1} \end{addmargin}}
+\newcommand{\ex}[3]{\hrt \subsection*{Exercise #1} \textbf{\underline{Q:}} \\ #2 \\ \textbf{\underline{A:}} \\ #3 \hrb}
+\newcommand{\eq}[3]{\hrt \subsection*{Example #1} \textbf{\underline{Q:}} \\ #2 \\ \textbf{\underline{A:}} \\ #3 \hrb}
+\newcommand{\imageleft}[2]{\begin{wrapfigure}{l}{#1\textwidth} \includegraphics[width=#1\textwidth]{#2} \end{wrapfigure}}
+\newcommand{\imageright}[2]{\begin{wrapfigure}{r}{#1\textwidth} \includegraphics[width=#1\textwidth]{#2} \end{wrapfigure}}
+\newcommand{\homework}[3]{\flushleft Mark Mekosh \\ #1 \\ #2 \\ #3}
+\newcommand{\deriv}[2]{\frac{d #1}{d #2}}
+\newcommand{\pderiv}[2]{\frac{\partial #1}{\partial #2}}
+\newcommand{\dprod}[2]{\vec{#1} \cdot \vec{#2}}
+
+%Commands
+
+
+\begin{document}
+\homework{2/13/20}{Phys 510}{Homework $\#2$}
+
+\section*{1}
+
+	\subsection*{a)}
+	\begin{gather}
+		H = \frac{p_1^2 + p_2^2}{2} - \frac{1}{\sqrt{q_1^2 + q_2^2}}
+		\intertext{Hamiltons equations of motion are given by,} 
+		\dot{q}_k = \pderiv{H}{p_k} \ \text{ and } \dot{p}_k = -\pderiv{H}{q_k} \\
+		\Rightarrow \dot{q}_1 = \pderiv{}{p_1}\left( \frac{p_1^2 + p_2^2}{2} - \frac{1}{\sqrt{q_1^2 + q_2^2}} \right) = p_1 \\
+		\Rightarrow \dot{q}_2 = p_2 \\
+		\dot{p}_1 = - \pderiv{}{p_1} \left( \frac{p_1^2 + p_2^2}{2} - \frac{1}{\sqrt{q_1^2 + q_2^2}} \right) = \frac{1}{2} (q_1^2 + q_2^2)^{-3/2} (2q_1) = \frac{q_1}{\sqrt{q_1^2 + q_2^2}} \\
+		\Rightarrow \dot{p}_2 = \frac{q_2}{\sqrt{q_1^2 + q_2^2}}
+	\end{gather}
+
+	\subsection*{d)}
+		\subsubsection*{Symplectic Euler method}
+			For this method when the initial eccentricity is set to a value of around 0.6 the shape of the graph stays consistent even for large numbers of total time steps. When the eccentricity is set closer to 1, at 0.9 for example, the shape of the ellipse stays the same, but there is a precession of the ellipse. When the eccentricity is close to one, the energy of the system has larger errors, but still consistently corrects itself.
+	\subsubsection*{Euler method}
+			For this method the plot was not very stable, even with fairly low number of time steps and an eccentricity of 0.6. With a higher eccentricity of 0.9 the plot shows essentially a straight line, as the energy almost immediately goes to infinity. 
+\end{document}
