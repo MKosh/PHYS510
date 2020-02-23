@@ -13,22 +13,32 @@ const ϵ = 1
 
 function Initialize(N)
     # Positions
-    r = zeros(N, 2)
+    R = zeros(N, 2)
     x = repeat(collect(1.:10), 10)
     y = repeat(collect(1.:10), inner=10)
-    r[:,1] = x .+ 10
-    r[:,2] = y .+ 10
+    R[:,1] = x .+ 10
+    R[:,2] = y .+ 10
 
     # Forces
-
-    #Velocities
+    F = zeros(N, 2)
     
-    return r
+    #Velocities
+    V = zeros(N, 2)
+
+    return R, F, V
 end
 
-r = Initialize(N)
+function Force()
 
-display(r)
-display(scatter(r[:, 1], r[:, 2], xlims = (0, 30), ylims = (0, 30)))
+end
+
+function Verlet()
+
+end
+
+
+R, F, V = Initialize(N)
+
+display(scatter(R[:, 1], R[:, 2], xlims = (0, 30), ylims = (0, 30)))
 println("Done \n")
 #function Force()
