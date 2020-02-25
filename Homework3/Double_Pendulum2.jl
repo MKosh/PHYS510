@@ -1,5 +1,11 @@
 using Plots, DelimitedFiles
 
+##############################################
+# Simulation of a double pendulum
+# Plots the distance as a function of time between two different
+# sets of initial conditions
+##############################################
+
 # Initializing values
 const m = 1.0
 const g = 9.8
@@ -11,6 +17,11 @@ N = 10000
 ϕ2o = 0.0
 p1o = 0.0
 p2o = 1.5
+prime_conditions = [ϕ1o, ϕ2o, p1o, p2o+0.01]
+
+# Title for the plot
+Title = "phi1 = "*string(ϕ1o)*", phi2 = "*string(ϕ2o)*", p1 = "*string(p1o)*
+    ", p2 = "*string(p2o)*"\nphi1' = "*string(prime_conditions[1])*", phi2' = "*string(prime_conditions[2])*", p1' = "*string(prime_conditions[3])*", p2' = "*string(prime_conditions[4])
 
 Time = collect(0.0:dt:(N*dt)-dt)
 
@@ -33,7 +44,7 @@ function F(ϕ1, ϕ2, p1, p2)
     return f1, f2, f3, f4
 end
 
-
+# Function for doing the integration
 function RK4(ϕ1, ϕ2, p1, p2)
     global m
     global l
@@ -51,17 +62,19 @@ function RK4(ϕ1, ϕ2, p1, p2)
     return Ynew
 end
 
-function draw_plot(dist, time)
-    display(plot(time, dist, xlabel="Time",ylabel="Distance",title="Something",legend=false))
+# Function to draw the plots
+function draw_plot(dist, time, Title)
+    display(plot(time, dist, xlabel="Time",ylabel="Distance",title=Title,legend=false))
+
 end
 
+# Function to calculate the distance between to points
 Dist(ϕ1, ϕ2, ϕ1p, ϕ2p, p1, p2, p1p, p2p) =
     sqrt((ϕ1 - ϕ1p)^2 + (ϕ2 - ϕ2p)^2 + (p1 - p1p)^2 + (p2 - p2p)^2)
 
 
-
     pp1 = [ϕ1o, ϕ2o, p1o, p2o]
-    pp2 = [ϕ1o, ϕ2o, p1o+0.1, p2o]
+    pp2 = prime_conditions
 
     function pend(pp, dt)
         Φ = [[] for i in 1:2]
@@ -76,11 +89,11 @@ Dist(ϕ1, ϕ2, ϕ1p, ϕ2p, p1, p2, p1p, p2p) =
         return Φ, P
     end
 
-Phi1, Mom1 = pend(pp1, dt)
-Phi2, Mom2 = pend(pp2, dt)
-dist = Dist.(Phi1[1], Phi1[2], Phi2[1], Phi2[2], Mom1[1], Mom1[2], Mom2[1],
-    Mom2[2])
-draw_plot(dist, Time)
+Phi1, Momentum1 = pend(pp1, dt)
+Phi2, Momentum2 = pend(pp2, dt)
+dist = Dist.(Phi1[1], Phi1[2], Phi2[1], Phi2[2], Momentum1[1], Momentum1[2], Momentum2[1],
+    Momentum2[2])
 
+draw_plot(dist, Time, Title)
 
-    println("Doneish! \n")
+println("Done!\n")

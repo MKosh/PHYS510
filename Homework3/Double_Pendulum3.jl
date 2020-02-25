@@ -7,17 +7,19 @@ using Plots
 ####################################################
 
 # Initializing constants
-const m = 1.0
+const m1 = 1.0
+const m2 = 3.0
 const g = 9.8
-const l = 1.0
+const l1 = 1.0
+const l2 = 2.0
 const dt = 0.01
 
 # Initializing variables
 N = 10000
 ϕ1o = 0.0
 ϕ2o = 0.0
-p1o = 0.0
-p2o = 6.5
+p1o = 4.0
+p2o = 2.0
 Title = "Poincare: phi1 = "*string(ϕ1o)*", phi2 = "*string(ϕ2o)*", p1 = "*string(p1o)*
     ", p2 = "*string(p2o)
 
@@ -32,20 +34,26 @@ push!(P[1], p1o)
 push!(P[2], p2o)
 
 function F(ϕ1, ϕ2, p1, p2)
-    global m
-    global l
+    global m1
+    global m2
+    global l1
+    global l2
     global g
     c = cos(ϕ1 - ϕ2)
     s = sin(ϕ1 - ϕ2)
-    d = 1 / (m * l^2)
-    a = 1 / (1 + s^2)
 
-    f1 = d * a * (p1 - p2 * c)
-    f2 = d * a * (2p2 - p1 * c)
-    f3 = d * a * (-p1 * p2 * s + a * (p1^2 + 2 * p2^2 - 2p1 * p2 * c) * c * s) -
-         2 * m * g * l * sin(ϕ1)
-    f4 = d * a * (p1 * p2 * s - a * (p1^2 + 2 * p2^2 - 2p1 * p2 * c) * s * c) -
-         m * g * l * sin(ϕ2)
+    a = 1/(l1 * l2)
+    M = (m1 + m2)
+    P = p1*p2
+    q = (1/(m1 + m2*s^2))
+
+    b = a * P * s * q
+    d = 1/2 * a^2 * q^2 * (l2^2*m2*p1^2 + l1^2*M*p2^2 - l1*l2*m2*P*c*sin(2(ϕ1-ϕ2)))
+
+    f1 = q * (l2*p1 - l1*p2*c)/(l1^2*l2)
+    f2 = q * (l1*M*p2 - l2*m2*p1*c)/(l1*l2^2*m2)
+    f3 = -M * g * l1 * sin(ϕ1) - b + d
+    f4 = -m2 * g * l2 * sin(ϕ2) + b - d
 
     return f1, f2, f3, f4
 end
@@ -74,8 +82,8 @@ let
     pp = [ϕ1o, ϕ2o, p1o, p2o]
 
     # x and y positions of the masses on the pendulum
-    x = [l * sin(ϕ1o), l * sin(ϕ2o)]
-    y = [-l * cos(ϕ1o), -l * cos(ϕ1o) - l * cos(ϕ2o)]
+    x = [l1 * sin(ϕ1o), l1 *sin(ϕ1o) + l2 * sin(ϕ2o)]
+    y = [-l1 * cos(ϕ1o), -l1 * cos(ϕ1o) - l2 * cos(ϕ2o)]
 
     # x and y positions for the strings that hold the values
     xstring = [[] for i = 1:2]
@@ -108,15 +116,11 @@ let
         push!(P[1], pp[3])
         push!(P[2], pp[4])
 
-        if abs(pp[2]) < 0.1 && pp[4] > 0
-            push!(poincare[1], pp[1])
-            push!(poincare[2], pp[3])
-        end
         # Updating the values that get plotted for the real space plot
-        x1 = l * sin(Φ[1][i])
-        x2 = x1 + l * sin(Φ[2][i])
-        y1 = -l * cos(Φ[1][i])
-        y2 = y1 - l * cos(Φ[2][i])
+        x1 = l1 * sin(Φ[1][i])
+        x2 = x1 + l2 * sin(Φ[2][i])
+        y1 = -l1 * cos(Φ[1][i])
+        y2 = y1 - l2 * cos(Φ[2][i])
 
         x[1] = x1
         x[2] = x2
@@ -143,29 +147,11 @@ let
             deleteat!(yTrace[1], 1)
             deleteat!(yTrace[2], 1)
         end
-
-        ################################################
-        # If the below is not commented out it lets the simulation run as an animation
-        # Uncommenting the top 3 lines and the gui() line work
-        # The middle 3 lines break it because of the custom layout
-        # To run the animation the code has to be run from the command line
-        # or REPL, Atom doesn't like animations
-        ################################################
-
-        #pend = scatter(x,y, xlims=(-2l,2l),ylims=(-3l,0.5))
-        #plot!(pend, xstring, ystring, seriescolor=:black)
-        #plot!(pend, xTrace, yTrace)
-
-        #phi = plot(Φ[1], Φ[2], xlabel="phi1",ylabel="phi2",legend=false)
-        #plt = plot(P[1], P[2], xlabel="p1",ylabel="p2",legend=false)
-        #plot(phi, plt, pend, layout=lay)
-
-        #gui()
     end
 
     conds = ["phi1="*string(ϕ1o) "phi2="*string(ϕ2o) "p1="*string(p1o) "p2="*string(p2o)]
     # Plot the results using the custom layout
-    pend = plot(xTrace, yTrace, xlims = (-2l, 2l), ylims = (-2.5l, 2l),size=(1280,720), label=conds)
+    pend = plot(xTrace, yTrace,size=(1280,720), label=conds)
     plot!(pend, xstring, ystring, seriescolor = :black,label=[conds[3] conds[4]])
     scatter!(pend, x, y, label="")
 
@@ -174,11 +160,8 @@ let
 
     double_pend = plot(phi, plt, pend, layout = lay)
     display(double_pend)
-    poincare_plot = scatter(poincare[1],poincare[2],markersize=3,title=Title,xlabel="phi1",ylabel="p1",size=(1280,720),legend=false)
-    display(poincare_plot)
 
-    #savefig(double_pend, "Double_Pendulum5")
-    #savefig(poincare_plot, "Poincare_Plot5")
+    #savefig(double_pend, "Different_m_and_l")
 
-    println("Done!\n")
+    println("Doneish!\n")
 end
