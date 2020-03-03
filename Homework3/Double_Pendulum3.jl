@@ -82,7 +82,7 @@ let
     pp = [ϕ1o, ϕ2o, p1o, p2o]
 
     # x and y positions of the masses on the pendulum
-    x = [l1 * sin(ϕ1o), l1 *sin(ϕ1o) + l2 * sin(ϕ2o)]
+    x = [l1 * sin(ϕ1o), l2 * sin(ϕ2o)]
     y = [-l1 * cos(ϕ1o), -l1 * cos(ϕ1o) - l2 * cos(ϕ2o)]
 
     # x and y positions for the strings that hold the values
