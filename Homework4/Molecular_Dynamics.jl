@@ -1,137 +1,126 @@
+#=--------------------------------------------------------#
+Molecular Dynamics Simulation
+
+Note: This is the more basic version that runs a slow simulation.
+    It's a reference at this point, and Molecular_Dynamics2.jl
+    is the more fully featured version that should be used.
+--------------------------------------------------------=#
 using Plots
 
 const N = 100
 const L = 30
 const g = 9.8
 const dt = 0.001
+const dt2 = dt^2
 const time_steps = 5000
 const m = 1.0
 const σ = 1
 const ϵ = 1
-const rows = 10
+const eps = 1e-8
 
-function Initialize(N, rows)
-    global g
-    global m
-    R = zeros(N, 2)
-    x = repeat(collect(1.:rows), rows)
-    y = repeat(collect(1.:rows), inner=rows)
-    R[:,1] = x .+ 10
-    R[:,2] = y .+ 10
 
-    #F = zeros(N, 2)
-    #F[:,2] .= -m*g
-    F = [0.0 -9.8]
-
-    V = zeros(N, 2)
-
-    return R, F, V
+function Initialize(N)
+    global m, g
+    x = repeat(collect(10.5:19.5), 10)
+    y = repeat(collect(10.5:19.5), inner=10)
+    vx = zeros(N)
+    vy = zeros(N)
+    ax = zeros(N)
+    ay = zeros(N)
+    ax1 = zero(N)
+    ay1 = zeros(N)
+    return x, y, vx, vy, ax, ay, ax1, ay1
 end
 
-function dist(R, particle)
-    distance = zeros(N)
-    temp = [R[particle,1] R[particle,2]]
-    Z = repeat(temp, N)
+function Force(dx, dy)
+    global σ, ϵ, g, eps
+    r2 = (dx^2 + dy^2)
+    if r2 < eps
+        r2 = eps
+    end
+    r2inv = 1.0/r2
+    er2 = ϵ^2 * r2inv
+    a = er2^3
+    f = 24.0 * σ * r2inv * a * (2.0*a - 1.0)
+    fx = f*dx
+    fy = f*dy
+    return fx, fy
+end
 
-    C = Z - R
-    dir = zeros(N, 2)
+function Verlet!(x, y, vx, vy, ax, ay, ax1, ay1)
+    global L, dt, dt2
     for i in 1:N
-        if i == particle
-            distance[i] = 0.0
-            dir[i,1] = 0.0
-            dir[i,2] = 0.0
-        else
-            distance[i] = sqrt(C[i, 1]^2 + C[i, 2]^2)
-            dir[i,1] = C[i,1]/distance[i]
-            dir[i,2] = C[i,2]/distance[i]
-        end
+        xnew = x[i] + vx[i]*dt + 0.5*ax[i]*dt2
+        ynew = y[i] + vy[i]*dt + 0.5*ay[i]*dt2
+
+        x[i], vx[i] = xBoundary!(xnew, vx[i], L)
+        y[i], vy[i] = yBoundary!(ynew, vy[i], L)
+
+    #    vx[i] = vx[i] + 0.5*ax[i]*dt
+    #    vy[i] = vy[i] + 0.5*ay[i]*dt
+
     end
 
-    #temp = findall(x->x<1e-8, distance)
-    #for i in 1:length(temp)
-    #    distance[temp[i]] *=1000
-    #end
-
-    return distance, dir
+    ax1, ay1 = Accel!(x, y, ax, ay)
+    for i in 1:N
+        vx[i] += 0.5*(ax[i] + ax1[i])*dt
+        vy[i] += 0.5*(ay[i] + ay1[i])*dt
+    end
+    return x, y
 end
 
-
-
-function LJ(r, rhat)
-    global σ, ϵ
-    ρ = @. 1/abs(r)^2
-    f = @. 24*σ*ρ * (2*(ϵ^2*ρ)^6 - (ϵ*ρ)^3) .* rhat
-    temp = findall(isnan, f)
-    f[temp[1]] = 0.0
-    f[temp[2]] = 0.0
-    return f
+function xBoundary!(pos, v, L)
+    if pos > L
+        pos = L-(pos-L)
+        v = -v
+    elseif pos < 0
+        pos = -pos
+        v = -v
+    end
+    return pos, v
 end
 
-
-function find_force!(R, particle)
-    global m, g
-    Fext = zeros(N, 2)
-    Fext[:,2] .= -m*g
-
-    r, rhat = dist(R, particle)
-    Fij = LJ(r, rhat)
-    Force = [0.5*(sum(Fij[:,1])) (0.5*sum(Fij[:,2])-m*g*10)]
-    return Force
+function yBoundary!(pos, v, L)
+    if pos < 0
+        pos = -pos
+        v = -v
+    end
+    return pos, v
 end
 
-function update_position!(R, V, F, part)
-    global dt
-    R[part,:] = @. R[part,:] + V[part,:]*dt + 0.5*F[:]*dt^2
-    return R
+function Plot(x, y, L)
+    scatter(x, y, xlims=(0,L), ylims=(0,L), legend=false)
+    gui()
 end
 
-function update_velocity!(R, V, F, newF, part)
-    global dt
-    V[part,:] = @. V[part,:] + 0.5*(F[:] + newF[:])*dt
-    return V
-end
+function Accel!(x, y, ax, ay)
+    global g, m
+    ax .= 0.0
+    ay .= -m*g
 
-function boundaries!(R, V, part)
-    global L
-        if R[part, 1] < 0
-            R[part, 1] = -R[part,1]
-            V[part, 1] = -V[part,1]
-        elseif R[part, 1] > L
-            R[part, 1] = L-(R[part,1] -L)
-            V[part, 1] = -V[part, 1]
+    for i in 1:N
+        for j in i+1:N
+            dx = x[i] - x[j]
+            dy = y[i] - y[j]
+            fx, fy = Force(dx, dy)
+            ax[i] += fx
+            ay[i] += fy
+
+            ax[j] -= fx
+            ay[j] -= fy
         end
-        if R[part, 2] < 0
-            R[part, 2] = -R[part, 2]
-            V[part, 2] = -V[part, 2]
-        end
-    #temp = findall(x->x>L, R[:,1])
-    #R[temp] = @. L - (R[temp] - L)
-    #V[temp] = -V[temp]
-    #temp = findall(x->x<0, R[:,1])
-    #R[temp] = -R[temp]
-    #V[temp] = -V[temp]
-    #temp = findall(x->x<0, R[:,2])
-    #R[temp] = -R[temp]
-    #V[temp] = -V[temp]
-    return R, V
+    end
+        return ax, ay
 end
 
 let
-pos, forces, vel = Initialize(N, rows)
-
-for j in 1:time_steps
-
-    for i in 1:N
-        Fk = forces
-        forces = find_force!(pos, i)
-        vel = update_velocity!(pos, vel, Fk, forces, i)
-            pos = update_position!(pos, vel, forces, i)
-            pos, vel = boundaries!(pos, vel, i)
+    x, y, vx, vy, ax, ay, ax1, ay1 = Initialize(N)
+    for i in 1:time_steps
+        ax, ay = Accel!(x, y, ax, ay)
+        x, y = Verlet!(x, y, vx, vy, ax, ay, ax1, ay1)
+        Plot(x, y, L)
+        #sleep(0.05)
     end
-scatter(pos[:,1],pos[:,2], xlims=(0,L),ylims=(0,2L),legend=false)
-gui()
 end
-#display(scatter(pos[:,1],pos[:,2],xlims=(0,L),ylims=(0,L)))
 
-end
-println("Done!\n")
+println("Doneish!\n")
