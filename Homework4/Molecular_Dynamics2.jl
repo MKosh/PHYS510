@@ -13,9 +13,8 @@ Options:
     -OR Display a static plot of the final values and their averages
 
 Run times are getting long, but that's just because I'm putting all of the functions
-asked for in the homework into one program. I've also considered toying around with
-adding multithreading support, but its already too much of a mess to do that. I'd have to rewrite
-everything
+asked for in the homework into one program. It could stand to be cleaned up a bit,
+and have a few variables renamed.
 #--------------------------------------------------------=#
 
 using Plots
@@ -56,8 +55,8 @@ function Initialize(N, shape)  # Initialize the variables for position, velocity
         x = x .+ 2  #center the triangle's initial position
         y = y .+ 10
     end
-    vx = zeros(N)   # Arrays of length N, all elements are zero
-    vy = zeros(N)
+    vx = zeros(N+1)   # Arrays of length N, all elements are zero
+    vy = zeros(N+1)
     ax = zeros(N)   # F = ma, but for our case m = 1
     ay = zeros(N)
     ax1 = zero(N)
@@ -65,7 +64,8 @@ function Initialize(N, shape)  # Initialize the variables for position, velocity
     T = []
     Tave = []
     Den = zeros(N+1)
-    return x, y, vx, vy, ax, ay, ax1, ay1, T, Tave, N, Den
+    V = zeros(N+1)
+    return x, y, vx, vy, ax, ay, ax1, ay1, T, Tave, N, Den, V
 end
 
 function LJ(dx, dy) # Calculate the force on the particles from the Lennard-Jones potential
@@ -100,8 +100,9 @@ function Verlet!(x, y, vx, vy, ax, ay, ax1, ay1, N)    # Implement the velocity 
     for i in 1:N    # Update the velocities of the particles
         vx[i] += 0.5*(ax[i] + ax1[i])*dt
         vy[i] += 0.5*(ay[i] + ay1[i])*dt
+
     end
-    return x, y # Return the position vectors
+    return x, y, vx, vy # Return the position vectors
 end
 
 function xBoundary!(pos, v, L)  # Check the boundary conditions in the x direction (Nonperiodic boundaries)
@@ -123,7 +124,7 @@ function yBoundary!(pos, v, L)  # Check the boundary condition in the y directio
     return pos, v
 end
 
-function Plot(x, y, L, T, Tave, Den, AveDen, type)  # Plot the positions of the particles. Used for real time visualization
+function Plot(x, y, Vave,V, L, T, Tave, Den, AveDen, type)  # Plot the positions of the particles. Used for real time visualization
     #=This function plots the particle simulation, temperature at each time step,
     or the average temperature over 100 time step intervals.
     It's mostly just for testing, to check if things are running properly.
@@ -145,16 +146,21 @@ function Plot(x, y, L, T, Tave, Den, AveDen, type)  # Plot the positions of the 
     elseif type == "Density"
         plot(collect(0:0.3:30-0.3), Den,xlims=(0,30),ylims=(0,80), xlabel=("Height"), ylabel=("Density"), title=("Density vs Height"), legend=false, size=(1280, 720))
         gui()
+    elseif type == "Velocity"
+        plot(Vave)
+        gui()
     elseif type == "all"
-        lay = @layout([[a ; b] c])
+        lay = @layout([[a ; b] [c ; d]])
 
-        p1 = plot(T, xlims=(0,time_steps), ylims=(0,9000),label="Temperature", xlabel=("Time"),ylabel=("Temperature"))
-        p2 = plot(collect(0:0.3:30), Den,label="Density", xlabel=("Height"), ylabel=("Density"), title=("Density vs Height"))
+        p1 = plot(T, xlims=(0,time_steps), ylims=(0,9000),label="Temperature")
+        p2 = plot(collect(0:0.3:30), Den,label="Density")
         p3 = scatter(x, y, xlims=(0,L), ylims=(0,L), legend=false)
+        p4 = plot(V, xlims=(0,100),ylims=(0,10),label="Velocities")
 
-        plot!(p1, collect(100:100:5000), Tave, label="Average Temp")
+        plot!(p1, collect(100:100:8000), Tave, label="Average Temp")
         plot!(p2, collect(0:0.3:30), AveDen, label="Average Density")
-        plot(p1, p2, p3, layout=lay, size=(1280,720))
+        plot!(p4, collect(0:0.3:30), Vave, label="Average Velocity")
+        plot(p1, p2, p3,p4, layout=lay, size=(1280,720))
 
         gui()
     end
@@ -192,7 +198,7 @@ end
 function Density(y) # Find the number of particles in a particle slice of the height
     temp = [[] for i in 1:101] # An array of arrays, one for each slice of the height
     for i in 1:101 # Increment over each slice
-        temp[i] = findall(x->i*0.3-0.3<=x<i, y) # Returns an array for at each height i with the indecies of the particles in that slice as the elements
+        temp[i] = findall(x->i*0.3-0.3<=x<i*0.3, y) # Returns an array for at each height i with the indecies of the particles in that slice as the elements
     end
     Den = length.(temp) # The length just gives the number of particles at each height
 end
@@ -203,6 +209,21 @@ function AveDensity!(Den, i) # Find the average density
     return ave, Den
 end
 
+function Velocity!(vx, vy)
+    V = @. sqrt(vx^2 + vy^2)
+    temp = [[] for i in 1:101]
+    for i in 1:101
+        temp[i] = findall(x->i*0.3-0.3<=x<i*0.3, V)
+    end
+    return length.(temp)
+end
+
+function AveVelocity!(V)
+    ave = 0.01 .* V
+    V = zeros(101)
+    return ave, V
+end
+
 #------------------- End Function Declarations --------------------#
 
 #------------------- Start Main Loop --------------------#
@@ -210,11 +231,11 @@ let
 
     N = 100 # Number of particles, can't be declared a const because it changes for triangles
     shape = "box" # Initial shape of the particles box or triangle
-    Gif = true # Only set to true if you want to save a gif of the simulation
-    Anim = 2 # Set to true for a painfully slow realtime animation, anything else gives a static plot at the end of the time steps.
+    Gif = false # Only set to true if you want to save a gif of the simulation
+    Anim = false # Set to true for a painfully slow realtime animation, anything else gives a static plot at the end of the time steps.
 
     if (Gif == true) # GIF
-        x, y, vx, vy, ax, ay, ax1, ay1, T, Tave, N, Den = Initialize(N, shape)
+        x, y, vx, vy, ax, ay, ax1, ay1, T, Tave, N, Den, V = Initialize(N, shape)
         ρ = Density(y)
         ρAve = zeros(N+1)
 
@@ -230,8 +251,9 @@ let
 
         @gif for i in 1:time_steps
             ax, ay = Accel!(x, y, ax, ay, N)
-            x, y = Verlet!(x, y, vx, vy, ax, ay, ax1, ay1, N)
+            x, y, vx, vy = Verlet!(x, y, vx, vy, ax, ay, ax1, ay1, N)
             Temperature!(T, vx, vy)
+            vnew = Velocity!(vx, vy)
             ρ = Density(y)
             push!(p, T[i]) #$
             p[2][1][:y] = ρ #s
@@ -243,29 +265,36 @@ let
         #* Uncomment these lines and comment out the lines with $ after them for the animation of just the particles
     else # NO GIF
         if Anim == true # ANIMATION
-            x, y, vx, vy, ax, ay, ax1, ay1, T, Tave, N, Den = Initialize(N, shape)
+            x, y, vx, vy, ax, ay, ax1, ay1, T, Tave, N, Den, V = Initialize(N, shape)
             ρ = Density(y)
             ρAve = zeros(N+1)
             for i in 1:time_steps
                 ax, ay = Accel!(x, y, ax, ay, N)
-                x, y = Verlet!(x, y, vx, vy, ax, ay, ax1, ay1, N)
-                Plot(x, y, L, T, Tave, ρ, ρAve, "particle")
+                x, y, vx, vy = Verlet!(x, y, vx, vy, ax, ay, ax1, ay1, N)
+                Plot(x, y, vx, vy, L, T, Tave, ρ, ρAve, "particle")
             end
         else # NO ANIMATION
-            x, y, vx, vy, ax, ay, ax1, ay1, T, Tave, N, Den = Initialize(N, shape)
+            x, y, vx, vy, ax, ay, ax1, ay1, T, Tave, N, Den, V = Initialize(N, shape)
             ρAve = zeros(N+1)
+            Vave = zeros(N+1)
+            Vtemp = zeros(N+1)
             for i in 1:time_steps
                 ax, ay = Accel!(x, y, ax, ay, N)
-                x, y = Verlet!(x, y, vx, vy, ax, ay, ax1, ay1, N)
+                x, y, vx, vy = Verlet!(x, y, vx, vy, ax, ay, ax1, ay1, N)
                 Temperature!(T, vx, vy)
                 ρ = Density(y)
                 Den += ρ
+                v = Velocity!(vx, vy)
+                V += v
+                Vtemp = V # The last time step V gets reset to zeros, this is to hold that last V for plotting
                 if i % 100 == 0
                     AveTemp!(Tave, T, i)
                     ρAve, Den = AveDensity!(Den, i)
+                    Vave, V = AveVelocity!(V)
                 end
             end
-            Plot(x, y, L, T, Tave, ρ, ρAve, "all")
+            Vtemp .*= 0.01 # Average Velocity at the last time step
+            Plot(x, y, Vave,Vtemp, L, T, Tave, ρ, ρAve, "all")
         end
     end
 end
