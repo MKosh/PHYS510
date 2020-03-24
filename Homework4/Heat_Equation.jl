@@ -1,3 +1,13 @@
+#=-----------------------------------------------
+Stationary Heat Equation
+
+Using:
+    - Gaussian Elimination
+    - Inhomogeneous heat (diffusion) equation
+
+-----------------------------------------------=#
+
+
 using Plots
 
 N = 10
