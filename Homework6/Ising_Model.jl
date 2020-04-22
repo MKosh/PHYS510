@@ -32,33 +32,14 @@ Method:
 using Plots, Profile
 gr()
 
-#Initial Values
-MCsteps = 20000000               #number of Monte Carlo Steps
-N = 256                         #Lattice size NxN
-Counts = zeros(N, 2)            #array to count the spin up and spin down states
-steps = 1000                   #Number of steps per frame
-T =  1.0                        #Temperature
-ΔT = 0.1                       #Change in temperature
-e4 = exp(-4/T)                 #precomputed exponents for the metropolis algorithm dE = 2 or -2
-e8 = e4^2                      #precomputed exponents for the metropolis algorithm dE = 4 or -4
-temp = "T = "*string(T)         #string for showing temp on graph
-mag = energy = 0.0             #initialize magnetization and energy
-
-#populate the lattice with random states of +1 or -1
-L = rand(-1:2:1, N,N)
-#L = ones(N,N)
-#show the initial random lattice
-plt = heatmap(L, xlims=(0,N), aspect_ratio = 1, color = :grays, title = temp,xlabel="0 steps", size=(1280,1280))
-plot(plt)
-gui()
 
 #-------------------- Start Function Declarations --------------------#
 
 #function for possible energy changes
 function w(t)
-    if t == 4 || t == -4
+    if t == 8 || t == -8
         return e8
-    elseif t == 2 || t == -2
+    elseif t == 4 || t == -4
         return e4
     elseif t == 0
         return 0
@@ -66,40 +47,44 @@ function w(t)
 end
 
 #function for calculating the initial energy
-function CalcEnergy(latt, N)
-	ener = 0.0
+function CalcEnergy(latt, N, J)
+	energy = 0.0
     for i in 1:N
 	    for j in 1:N
-		S = latt[i, j]
-		    neigh = boundary(latt, N, i, j)
-		    ener += -neigh*S
+		energy -= DeltaE(latt, N, i, j, J)
 	    end
      end
-     return ener/2.0
+     return energy
 end
-
 #function for counting spin up vs spin down
 
-#Count spins
-function spinCount(latt)
-    global countUps = 0
-    global countDowns = 0
-    for i in 1:N
-        for j in 1:N
-            if latt[i, j] == 1
-                countUps += 1
-            end
-            if latt[i, j] == -1
-                countDowns += 1
-            end
-        end
-    end
-    return countUps, countDowns
-end
 
 #Function to sum the four nearest neighbors, accounting for toroidal boundaries
-function boundary(latt, N, i, j)
-    ΔE = 0
+function DeltaE(latt, N, i, j, J)
+    if i == 1
+        left = latt[N, j]
+    else
+        left = latt[i-1,j]
+    end
+    if i == N
+        right = latt[1, j]
+    else
+        right = latt[i+1, j]
+    end
+    if j == N
+        up = latt[i, 1]
+    else
+        up = latt[i, j+1]
+    end
+    if j == 1
+        down = latt[i, N]
+    else
+        down = latt[i, j-1]
+    end
+    return 2*latt[i,j]*(up + down + left + right)*J
+end
+
+function neighbors(latt, N, i, j)
     if i == 1
         left = latt[N, j]
     else
@@ -124,51 +109,110 @@ function boundary(latt, N, i, j)
 end
 
 #Flip the spin
-function FlipSpin(latt, i, j)
+function FlipSpin!(latt, i, j)
     latt[i,j] = -latt[i,j]
-    return latt[i,j]
+end
+
+# Do One MC Step
+function MCmove!(L, N, iT, accept, M, E, J, Accum)
+	for k in 1:N*N
+		i = rand(1:N)
+		j = rand(1:N)
+
+		dE = DeltaE(L, N, i, j, J)  #energy change
+
+		if dE <= 0 || rand() < exp(-dE*iT)
+			accept += 1
+			FlipSpin!(L, i, j)
+			M += 2*L[i,j]
+			E += dE
+		end
+
+	end
+		Accum[1] += M
+		Accum[2] += E
+		return L, accept, M, E, Accum
+end
+
+
+function LatticePlot(L, N, accept, temp, k)
+	heatmap(L, color = :grays, clims=(-1,1), legend=false, aspect_ratio = 1, title = temp,xlims=(0,N),xlabel=(string(accept)*" Flips, "*string(k)*" MC steps"))
+	gui()
+end
+
+function Initialize(N, temp)
+	accept = 0
+	L = rand(-1:2:1, N,N)		#populate the lattice with random states of +1 or -1
+
+	Magnetization = sum(L)
+	Energy = 0
+
+	for j in 1:N, i in 1:N
+		Energy -= L[i,j] * neighbors(L, N, i, j)
+	end
+
+#	plt = heatmap(L, xlims=(0,N), aspect_ratio = 1, color = :grays, title = temp,xlabel="0 steps")
+#	plot(plt)
+#	gui()
+
+	Accum = zeros(2)
+
+	return L, accept, Magnetization, Energy, Accum
 end
 #-------------------- End Function Declarations --------------------#
 
 #-------------------- Start Main --------------------#
-let
 
-	stepcount = 0
-	#Calculate initial Magnetization and energy
-	mag = sum(L)
-	energy = CalcEnergy(L, N)
-	Mcum = 0.0
-	Ecum = 0.0
+function main(gif)
+	#Initial Values
+	J = 1.0
+	mcsteps = 2000               # number of Monte Carlo Sweeps
+	N = 256                         #Lattice size NxN
+	steps = 10	                  #Number of steps per frame
+	T =  1.0                        #Temperature
+	e4 = exp(-4/T)                 #precomputed exponents for the metropolis algorithm dE = 2 or -2
+	e8 = e4^2                      #precomputed exponents for the metropolis algorithm dE = 4 or -4
+	temp = "T = "*string(T)         #string for showing temp on graph
+	n = 1.0/(mcsteps*N)
+	iT = 1.0/T
 
-	#Monte Carlo Algorithm and graphing
-	for k in 1:MCsteps
+	L, accept, M, E, Accum = Initialize(N, temp)
 
-    	i = rand(1:N)    #pick a random x value to test
-    	j = rand(1:N)    #pick a random y value to test
+	En = []
+	Mg = []
 
-    	neigh = boundary(L, N, i, j)  #energy change
+	lay = @layout [[a; b] c]
 
-    	ΔE = 2*L[i,j]*neigh
+if gif == true
 
-    	if ΔE <= 0 || rand() < w(neigh)
-        	stepcount += 1
-        	FlipSpin(L, i, j)
-        	energy += 2*L[i, j]*neigh
-			mag -= 2*L[i, j]
-        	if k%steps == 0    #graph the changes to the lattice every “steps” changes
-            	heatmap(L, color = :grays, aspect_ratio = 1, title = temp,xlims=(0,N), size=(720,720),xlabel=(string(k)*" steps"))
-				gui()
-        	end
-    	end
-    #=Mcum += mag
-    Mavg = Mcum/k
-    Ecum += energy
-    Eavg = Ecum/k
-    data = [Mavg, Eavg]
-    labels = ["Mavg", "Eavg"]
-    display(plot(k, data, label = labels, color = [:red, :green])=#
+	p = plot(plot([], ylabel="Energy"), plot([], ylabel="Magnetization"), plot(L,st=:heatmap,title=temp, legend=false, color=:grays, aspect_ratio=1), size=(1300,720), layout=lay)
+
+	@gif for k in 1:mcsteps
+		L, accept, M, E, Accum = MCmove!(L, N, iT, accept, M, E, J, Accum)
+		push!(En, n*E)
+		push!(Mg, n*M)
+
+		plot!(p[1], En, legend=false, color=1)
+		plot!(p[2], Mg, legend=false, color=2)
+		p[3][1][:z] = L
+	end every 10
+
+	println(accept, " Spins are flipped!\n")
+
+else
+
+	for k in 1:mcsteps
+		L, accept, M, E, Accum = MCmove!(L, N, iT, accept, M, E, J, Accum)
+		LatticePlot(L, N, accept, temp, k)
 	end
-println("\nDone!\n", stepcount, " Spins are flipped!\n")
+
+	println(accept, " Spings, are flipped!\n")
 end
+
+end
+
+main(false)
+
+println("\nDone!\n")
 
 #-------------------- End Main --------------------#
