@@ -126,8 +126,9 @@ function Plot_Regs(E, M, C, X, tau, N)	# Plot the log-log plots and their slopes
 		series_annotations=[Plots.text("beta = "*string(round(abs(β[2]),digits=4))*",  Accepted = 0.3264"),
 		Plots.text("alpha = "*string(round(abs(α[2]),digits=4))*",  Accepted = 0.1101"), Plots.text("gamma = "*string(round(abs(γ[2]),digits=4))*",  Accepted = 1.2372")])
 
+	#plot(gamma_plot, size=(1280, 720))
 	plot(beta_plot, alpha_plot, gamma_plot, values_plot, size=(1280,720))
-	savefig("Plots of Critical Exponents")
+	#savefig("Exponents")
 	gui()
 end
 #-------------------- End Function Declarations --------------------#
@@ -140,13 +141,13 @@ function main(plt)
 	h = 0.0
 	Tc = 2.21
 	eqsteps = 1000				# Number of steps to equilibrium
-	mcsteps = 6000             # Number of Monte Carlo Steps
-	N = 20                      # Lattice size NxN
-	numTemps = 100				# Number of temp steps
+	mcsteps = 2000            	# Number of Monte Carlo Steps
+	N = 10                      # Lattice size NxN
+	numTemps = 150				# Number of temp steps
 	n1 = 1.0/(mcsteps*N^3)		# Normalize
 	n2 = 1.0/(mcsteps^2*N^3)	# Normalize
 
-	T = range(2.0,stop=2.2,length=numTemps)
+	T = range(2.0,stop=2.15,length=numTemps)
 	τ = zeros(numTemps)
 	E = zeros(numTemps)
 	M = zeros(numTemps)
